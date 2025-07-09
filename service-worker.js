@@ -4,8 +4,8 @@ const FILES_TO_CACHE = [
   "/index.html",
   "/manifest.json",
   "/service-worker.js",
-  "/icons/vintra-icon-192.png",
-  "/icons/vintra-icon-512.png"
+  "/vintra-icon-192.png",
+  "/vintra-icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
