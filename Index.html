@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vintra AI</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d0b15" />
+  <link rel="icon" href="icons/vintra-icon-192.png" sizes="192x192" />
+  <style>
+    :root {
+      --bg-color: #0d0b15;
+      --text-color: #e0e0e0;
+      --header-bg: #1f1b2e;
+      --bubble-user-bg: #056162;
+      --bubble-vintra-bg: #35363b;
+      --input-bg: #202123;
+      --send-btn-bg: #007bff;
+      --sidebar-bg: #181818;
+      --sidebar-hover: #282828;
+      --font: "Segoe UI", "Roboto", sans-serif;
+    }
+
+    body.light-mode {
+      --bg-color: #f0f0f0;
+      --text-color: #333;
+      --header-bg: #fff;
+      --bubble-user-bg: #e2f7f7;
+      --bubble-vintra-bg: #fff;
+      --input-bg: #e9e9e9;
+      --send-btn-bg: #007bff;
+      --sidebar-bg: #f8f8f8;
+      --sidebar-hover: #ddd;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: var(--sidebar-bg);
+      position: fixed;
+      left: -240px;
+      height: 100%;
+      transition: left 0.3s;
+      z-index: 9;
+      padding-top: 60px;
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .sidebar h2 {
+      text-align: center;
+      color: #bb86fc;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar li a {
+      display: block;
+      padding: 15px 20px;
+      color: var(--text-color);
+      text-decoration: none;
+    }
+
+    .sidebar li a:hover {
+      background: var(--sidebar-hover);
+    }
+
+    .main {
+      flex: 1;
+      margin-left: 0;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .hamburger {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 24px;
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      z-index: 10;
+    }
+
+    .header {
+      background: var(--header-bg);
+      text-align: center;
+      padding: 1em;
+    }
+
+    .header h1 {
+      margin: 0;
+      color: #bb86fc;
+      font-size: 1.8em;
+    }
+
+    #chat {
+      flex: 1;
+      padding: 1em;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble {
+      padding: 10px 15px;
+      border-radius: 20px;
+      max-width: 80%;
+      line-height: 1.5;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: var(--bubble-user-bg);
+      color: #fff;
+    }
+
+    .vintra {
+      align-self: flex-start;
+      background: var(--bubble-vintra-bg);
+      color: #fff;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: var(--bg-color);
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 25px;
+      border: 1px solid #444;
+      background: var(--input-bg);
+      color: var(--text-color);
+    }
+
+    button {
+      border: none;
+      padding: 0 20px;
+      border-radius: 25px;
+      background: var(--send-btn-bg);
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <h2>Vintra AI</h2>
+    <ul>
+      <li><a href="#" onclick="showTab('chat')">💬 Chat</a></li>
+      <li><a href="#" onclick="showTab('settings')">⚙️ Settings</a></li>
+      <li><a href="#" onclick="showTab('help')">❓ Help</a></li>
+    </ul>
+  </aside>
+
+  <div class="main">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+
+    <div class="header">
+      <h1>Vintra Assistant</h1>
+    </div>
+
+    <div id="chat" class="tab"></div>
+    <div id="settings" class="tab" style="display:none; padding:20px;">
+      <h3>Settings</h3>
+      <label>
+        <input type="checkbox" id="voiceToggle" checked />
+        Enable Voice Output
+      </label>
+      <br /><br />
+      <button onclick="clearHistory()">🧹 Clear Chat History</button>
+    </div>
+
+    <div id="help" class="tab" style="display:none; padding:20px;">
+      <h3>About Vintra</h3>
+      <p>Vintra is your AI assistant built for smart offline and online tasks. Created by Vins, it supports command handling, chat, voice, and much more.</p>
+    </div>
+
+    <div class="input-area">
+      <input id="msgInput" placeholder="Type a message..." />
+      <button onclick="startVoice()">🎤</button>
+      <button onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("msgInput");
+    const voiceToggle = document.getElementById("voiceToggle");
+    const synth = window.speechSynthesis;
+    const serverURL = `http://${location.hostname}:5000/vintra`;
+
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+    }
+
+    function showTab(id) {
+      document.querySelectorAll(".tab").forEach(tab => tab.style.display = "none");
+      document.getElementById(id).style.display = "block";
+      toggleSidebar();
+    }
+
+    function appendMessage(text, sender) {
+      const div = document.createElement("div");
+      div.className = `bubble ${sender}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+
+      if (sender === "vintra" && voiceToggle.checked) {
+        const utter = new SpeechSynthesisUtterance(text);
+        synth.speak(utter);
+      }
+    }
+
+    function sendMsg() {
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      appendMessage(msg, "user");
+      input.value = "";
+
+      fetch(`${serverURL}?msg=${encodeURIComponent(msg)}`)
+        .then(res => res.text())
+        .then(text => {
+          appendMessage(text, "vintra");
+        });
+    }
+
+    function clearHistory() {
+      chat.innerHTML = "";
+      localStorage.removeItem("vintraHistory");
+    }
+
+    function startVoice() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return alert("Speech recognition not supported");
+
+      const recog = new SpeechRecognition();
+      recog.lang = "en-US";
+      recog.start();
+
+      recog.onresult = (e) => {
+        input.value = e.results[0][0].transcript;
+      };
+    }
+  </script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(reg => {
+          console.log("✅ Service Worker registered with scope:", reg.scope);
+        })
+        .catch(err => {
+          console.error("❌ Service Worker registration failed:", err);
+        });
+    });
+  } else {
+    console.warn("⚠️ Service Workers are not supported in this browser.");
+  }
+</script>
+</body>
+</html>
